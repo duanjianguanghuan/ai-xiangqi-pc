@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 象棋</title>
+  <style>
+    :root {
+      --primary-color: #1a237e;
+      --secondary-color: #ffd700;
+      --light-gray: #f5f5f5;
+      --dark-gray: #333333;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: var(--light-gray);
+    }
+
+    /* 自定义按钮样式 */
+    .btn-primary {
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+      font-bold: bold;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--primary-color);
+      color: white;
+      font-bold: bold;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    /* 自定义卡片样式 */
+    .card {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* 自定义标题样式 */
+    .title {
+      font-family: serif;
+      color: var(--primary-color);
+      font-bold: bold;
+    }
+
+    /* 棋盘样式 */
+    .chessboard {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      border: 2px solid var(--dark-gray);
+    }
+
+    .chess-square {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chess-square.light {
+      background-color: #f0d9b5;
+    }
+
+    .chess-square.dark {
+      background-color: #b58863;
+    }
+
+    .chess-square.selected {
+      background-color: #81c784;
+    }
+
+    .chess-square.valid-move {
+      background-color: #4caf50;
+    }
+
+    .chess-square.valid-capture {
+      background-color: #f44336;
+    }
+
+    /* 棋子样式 */
+    .chess-piece {
+      font-size: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .chess-piece:hover {
+      transform: scale(1.1);
+    }
+
+    /* 导航栏 */
+    nav {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 12px;
+      transition: color 0.3s ease;
+    }
+
+    nav a:hover {
+      color: var(--secondary-color);
+    }
+
+    /* 容器 */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* 游戏状态 */
+    .game-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    /* 游戏结果 */
+    .game-result {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .game-result-content {
+      background-color: white;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+      .chess-piece {
+        font-size: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .chess-piece {
+        font-size: 16px;
+      }
+    }
+
+    /* 首页样式 */
+    .hero {
+      background: linear-gradient(to bottom, var(--primary-color), #1565c0);
+      color: white;
+      padding: 64px 24px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      margin-bottom: 32px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .game-mode-selector {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 64px;
+    }
+
+    .feature-card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .feature-icon {
+      width: 64px;
+      height: 64px;
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 24px;
+    }
+
+    /* 登录/注册页面 */
+    .auth-container {
+      min-height: 100vh;
+      background: linear-gradient(to bottom, var(--primary-color), #1565c0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .auth-card {
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      max-width: 400px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .auth-header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 24px;
+    }
+
+    .auth-body {
+      padding: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.2);
+    }
+
+    .error-message {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* 个人中心 */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 4px solid var(--secondary-color);
+      object-fit: cover;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .tab-navigation {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: white;
+      color: var(--dark-gray);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab-button.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <!-- 首页 -->
+  <div id="home-page" class="page">
+    <!-- 导航栏 -->
+    <nav>
+      <div>
+        <h1 style="font-size: 24px; font-family: serif; font-weight: bold;">AI 象棋</h1>
+      </div>
+      <div>
+        <a href="#" onclick="showPage('login-page')">登录</a>
+        <a href="#" onclick="showPage('register-page')">注册</a>
+        <a href="#" onclick="showPage('profile-page')">个人中心</a>
+      </div>
+    </nav>
+
+    <!-- 英雄区域 -->
+    <div class="hero">
+      <div class="container">
+        <h1>智能象棋对战平台</h1>
+        <p>挑战强大的AI对手，或与全球玩家在线对战，提升你的象棋水平</p>
+        <div class="game-mode-selector">
+          <h2 style="margin-bottom: 24px;">开始游戏</h2>
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 18px;">游戏模式</label>
+            <div style="display: flex; gap: 16px;">
+              <button id="ai-mode" class="btn-primary" style="flex: 1;" onclick="selectGameMode('ai')">
+                人机对弈
+              </button>
+              <button id="online-mode" class="btn-secondary" style="flex: 1;" onclick="selectGameMode('online')">
+                在线对战
+              </button>
+            </div>
+          </div>
+          <div id="difficulty-selector" style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 18px;">难度级别</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn-secondary" onclick="selectDifficulty(1)">简单</button>
+              <button class="btn-secondary" onclick="selectDifficulty(2)">中等</button>
+              <button class="btn-secondary" onclick="selectDifficulty(3)">困难</button>
+              <button class="btn-secondary" onclick="selectDifficulty(4)">专家</button>
+              <button class="btn-secondary" onclick="selectDifficulty(5)">大师</button>
+            </div>
+          </div>
+          <button class="btn-primary" style="width: 100%;" onclick="startGame()">
+            开始游戏
+          </button>
+        </div>
+      </div>
+
+      <!-- 特色介绍 -->
+      <div class="container" style="margin-top: 64px;">
+        <h2 style="text-align: center; font-size: 32px; margin-bottom: 32px;">游戏特色</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3 style="font-size: 20px; margin-bottom: 12px;">强大的AI对手</h3>
+            <p style="color: #666;">基于Stockfish引擎，提供从简单到大师级别的AI对手，适合不同水平的玩家</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3 style="font-size: 20px; margin-bottom: 12px;">在线对战</h3>
+            <p style="color: #666;">与全球玩家实时对战，挑战不同风格的对手，提升你的象棋技巧</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3 style="font-size: 20px; margin-bottom: 12px;">精美界面</h3>
+            <p style="color: #666;">传统象棋棋盘设计，流畅的棋子动画，提供沉浸式的游戏体验</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer style="background-color: var(--primary-color); color: white; padding: 24px; text-align: center;">
+      <p>© 2026 AI 象棋. 保留所有权利.</p>
+    </footer>
+  </div>
+
+  <!-- 游戏页面 -->
+  <div id="game-page" class="page" style="display: none;">
+    <!-- 导航栏 -->
+    <nav>
+      <div>
+        <button onclick="showPage('home-page')" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+          ← 返回首页
+        </button>
+        <h1 style="font-size: 24px; font-family: serif; font-weight: bold; display: inline-block; margin-left: 16px;">AI 象棋</h1>
+      </div>
+      <div>
+        <button onclick="restartGame()" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px; margin-right: 16px;">
+          重新开始
+        </button>
+        <button onclick="showPage('home-page')" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+          首页
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <!-- 游戏状态 -->
+      <div class="game-status">
+        <div>
+          <span id="red-player" style="font-size: 20px; font-weight: bold; color: #e53935;">红方</span>
+          <span style="font-size: 20px; font-weight: bold; margin: 0 12px;">vs</span>
+          <span id="black-player" style="font-size: 20px; font-weight: bold; color: #212121;">黑方</span>
+        </div>
+        <div id="ai-thinking" style="display: none;">
+          <span style="color: #666;">AI 思考中...</span>
+        </div>
+      </div>
+
+      <!-- 游戏结果 -->
+      <div id="game-result" class="game-result" style="display: none;">
+        <div class="game-result-content">
+          <h2 id="result-message" style="font-size: 24px; margin-bottom: 24px;"></h2>
+          <div style="display: flex; gap: 16px; justify-content: center;">
+            <button class="btn-primary" onclick="restartGame()">
+              再玩一局
+            </button>
+            <button class="btn-secondary" onclick="showPage('home-page')">
+              返回首页
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 棋盘 -->
+      <div class="chessboard" id="chessboard">
+        <!-- 棋盘格子将通过 JavaScript 动态生成 -->
+      </div>
+
+      <!-- 游戏信息 -->
+      <div class="card" style="margin-top: 24px;">
+        <h3 style="font-size: 18px; margin-bottom: 16px;">游戏信息</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <p><strong>游戏模式：</strong><span id="game-mode">人机对弈</span></p>
+            <p><strong>难度级别：</strong><span id="game-difficulty">中等</span></p>
+          </div>
+          <div>
+            <p><strong>当前回合：</strong><span id="current-turn">红方</span></p>
+            <p><strong>游戏状态：</strong><span id="game-status">进行中</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 个人中心 -->
+  <div id="profile-page" class="page" style="display: none;">
+    <!-- 导航栏 -->
+    <nav>
+      <div>
+        <button onclick="showPage('home-page')" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+          ← 返回首页
+        </button>
+        <h1 style="font-size: 24px; font-family: serif; font-weight: bold; display: inline-block; margin-left: 16px;">个人中心</h1>
+      </div>
+      <div>
+        <button onclick="showPage('login-page')" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+          退出登录
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <!-- 个人信息卡片 -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="profile-header">
+          <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=chess%20player%20avatar%20profile%20picture&image_size=square" alt="用户头像" class="avatar">
+          <div>
+            <h2 style="font-size: 24px; margin-bottom: 4px;">象棋爱好者</h2>
+            <p style="color: #666; margin-bottom: 4px;">user@example.com</p>
+            <p style="color: #999; font-size: 14px;">加入时间: 2026-04-01</p>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div>
+            <p style="font-size: 24px; font-weight: bold; color: var(--primary-color);">25</p>
+            <p style="color: #666;">总对局</p>
+          </div>
+          <div>
+            <p style="font-size: 24px; font-weight: bold; color: #4caf50;">15</p>
+            <p style="color: #666;">胜利</p>
+          </div>
+          <div>
+            <p style="font-size: 24px; font-weight: bold; color: #f44336;">8</p>
+            <p style="color: #666;">失败</p>
+          </div>
+          <div>
+            <p style="font-size: 24px; font-weight: bold; color: #2196f3;">2</p>
+            <p style="color: #666;">平局</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 标签页导航 -->
+      <div class="tab-navigation">
+        <button class="tab-button active" onclick="switchTab('history')">历史对局</button>
+        <button class="tab-button" onclick="switchTab('info')">个人信息</button>
+        <button class="tab-button" onclick="switchTab('settings')">设置</button>
+      </div>
+
+      <!-- 标签页内容 -->
+      <div class="card">
+        <!-- 历史对局 -->
+        <div id="history-tab" class="tab-content active">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">历史对局记录</h3>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>模式</th>
+                  <th>难度</th>
+                  <th>对手</th>
+                  <th>结果</th>
+                  <th>步数</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>2026-04-22</td>
+                  <td>人机对弈</td>
+                  <td>中等</td>
+                  <td>AI</td>
+                  <td style="color: #4caf50; font-weight: bold;">胜利</td>
+                  <td>45</td>
+                </tr>
+                <tr>
+                  <td>2026-04-21</td>
+                  <td>在线对战</td>
+                  <td>-</td>
+                  <td>ChessMaster</td>
+                  <td style="color: #f44336; font-weight: bold;">失败</td>
+                  <td>38</td>
+                </tr>
+                <tr>
+                  <td>2026-04-20</td>
+                  <td>人机对弈</td>
+                  <td>困难</td>
+                  <td>AI</td>
+                  <td style="color: #4caf50; font-weight: bold;">胜利</td>
+                  <td>52</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 个人信息 -->
+        <div id="info-tab" class="tab-content">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">个人信息</h3>
+          <div style="space-y: 16px;">
+            <div class="form-group">
+              <label>用户名</label>
+              <input type="text" value="象棋爱好者">
+            </div>
+            <div class="form-group">
+              <label>邮箱</label>
+              <input type="email" value="user@example.com">
+            </div>
+            <div class="form-group">
+              <label>头像</label>
+              <input type="file">
+            </div>
+            <button class="btn-primary">更新个人信息</button>
+          </div>
+        </div>
+
+        <!-- 设置 -->
+        <div id="settings-tab" class="tab-content">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">设置</h3>
+          <div style="space-y: 24px;">
+            <div>
+              <h4 style="font-size: 16px; margin-bottom: 12px;">游戏设置</h4>
+              <div style="space-y: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>音效</span>
+                  <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                    <input type="checkbox" style="opacity: 0; width: 0; height: 0;">
+                    <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;"></span>
+                    <span style="position: absolute; cursor: pointer; top: 2px; left: 2px; width: 20px; height: 20px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                  </label>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>棋子动画</span>
+                  <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                    <input type="checkbox" checked style="opacity: 0; width: 0; height: 0;">
+                    <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--primary-color); transition: .4s; border-radius: 24px;"></span>
+                    <span style="position: absolute; cursor: pointer; top: 2px; right: 2px; width: 20px; height: 20px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>棋盘风格</label>
+                  <select style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                    <option>经典风格</option>
+                    <option>现代风格</option>
+                    <option>木质风格</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 style="font-size: 16px; margin-bottom: 12px;">账号设置</h4>
+              <div style="space-y: 12px;">
+                <div class="form-group">
+                  <label>修改密码</label>
+                  <button class="btn-secondary" style="width: 100%;">修改密码</button>
+                </div>
+                <div class="form-group">
+                  <label>隐私设置</label>
+                  <button class="btn-secondary" style="width: 100%;">隐私设置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 登录页面 -->
+  <div id="login-page" class="page" style="display: none;">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <button onclick="showPage('home-page')" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+              ←
+            </button>
+            <h1 style="font-size: 24px; font-family: serif; font-weight: bold;">用户登录</h1>
+          </div>
+          <p style="opacity: 0.8;">登录后可享受完整的游戏功能</p>
+        </div>
+        <div class="auth-body">
+          <div id="login-error" class="error-message" style="display: none;"></div>
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label>邮箱</label>
+              <input type="email" id="login-email" placeholder="请输入邮箱">
+            </div>
+            <div class="form-group">
+              <label>密码</label>
+              <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+              <div style="display: flex; align-items: center;">
+                <input type="checkbox" id="remember-me">
+                <label for="remember-me" style="margin-left: 8px;">记住我</label>
+              </div>
+              <a href="#" style="color: var(--primary-color); text-decoration: none;">忘记密码？</a>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%;">登录</button>
+            <div style="text-align: center; margin-top: 16px;">
+              <p style="color: #666;">还没有账号？ <a href="#" onclick="showPage('register-page'); return false;" style="color: var(--primary-color); font-weight: bold; text-decoration: none;">立即注册</a></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注册页面 -->
+  <div id="register-page" class="page" style="display: none;">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <button onclick="showPage('home-page')" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">
+              ←
+            </button>
+            <h1 style="font-size: 24px; font-family: serif; font-weight: bold;">用户注册</h1>
+          </div>
+          <p style="opacity: 0.8;">注册新账号，开始你的象棋之旅</p>
+        </div>
+        <div class="auth-body">
+          <div id="register-error" class="error-message" style="display: none;"></div>
+          <form onsubmit="handleRegister(event)">
+            <div class="form-group">
+              <label>用户名</label>
+              <input type="text" id="register-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+              <label>邮箱</label>
+              <input type="email" id="register-email" placeholder="请输入邮箱">
+            </div>
+            <div class="form-group">
+              <label>密码</label>
+              <input type="password" id="register-password" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+              <label>确认密码</label>
+              <input type="password" id="register-confirm-password" placeholder="请再次输入密码">
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%;">注册</button>
+            <div style="text-align: center; margin-top: 16px;">
+              <p style="color: #666;">已有账号？ <a href="#" onclick="showPage('login-page'); return false;" style="color: var(--primary-color); font-weight: bold; text-decoration: none;">立即登录</a></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let gameMode = 'ai';
+    let difficulty = 2;
+    let board = [];
+    let selectedPiece = null;
+    let validMoves = [];
+    let currentPlayer = 'red';
+    let gameStatus = 'playing';
+    let aiThinking = false;
+    const API_BASE_URL = 'http://localhost:5000';
+
+    // 页面切换
+    function showPage(pageId) {
+      // 隐藏所有页面
+      document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+      });
+      // 显示目标页面
+      document.getElementById(pageId).style.display = 'block';
+      
+      // 如果是个人中心页面，加载用户信息和历史对局
+      if (pageId === 'profile-page') {
+        loadUserProfile();
+        loadGameHistory();
+      }
+    }
+
+    // 选择游戏模式
+    function selectGameMode(mode) {
+      gameMode = mode;
+      // 更新按钮样式
+      document.getElementById('ai-mode').className = mode === 'ai' ? 'btn-primary' : 'btn-secondary';
+      document.getElementById('online-mode').className = mode === 'online' ? 'btn-primary' : 'btn-secondary';
+    }
+
+    // 选择难度
+    function selectDifficulty(level) {
+      difficulty = level;
+    }
+
+    // 开始游戏
+    async function startGame() {
+      try {
+        // 创建游戏
+        const response = await fetch(`${API_BASE_URL}/api/game/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ mode: gameMode, difficulty: difficulty })
+        });
+        const data = await response.json();
+        
+        // 切换到游戏页面
+        showPage('game-page');
+        // 初始化游戏
+        initGame();
+        // 更新游戏信息
+        document.getElementById('game-mode').textContent = gameMode === 'ai' ? '人机对弈' : '在线对战';
+        document.getElementById('game-difficulty').textContent = difficulty === 1 ? '简单' : difficulty === 2 ? '中等' : difficulty === 3 ? '困难' : difficulty === 4 ? '专家' : '大师';
+      } catch (error) {
+        console.error('创建游戏失败:', error);
+        // 即使API调用失败，也继续游戏
+        showPage('game-page');
+        initGame();
+        document.getElementById('game-mode').textContent = gameMode === 'ai' ? '人机对弈' : '在线对战';
+        document.getElementById('game-difficulty').textContent = difficulty === 1 ? '简单' : difficulty === 2 ? '中等' : difficulty === 3 ? '困难' : difficulty === 4 ? '专家' : '大师';
+      }
+    }
+
+    // 初始化游戏
+    function initGame() {
+      // 初始化棋盘
+      board = Array(8).fill(null).map(() => Array(8).fill(null));
+      // 初始化棋子
+      initPieces();
+      // 渲染棋盘
+      renderBoard();
+      // 重置游戏状态
+      selectedPiece = null;
+      validMoves = [];
+      currentPlayer = 'red';
+      gameStatus = 'playing';
+      aiThinking = false;
+      // 更新游戏状态显示
+      updateGameStatus();
+      // 隐藏游戏结果
+      document.getElementById('game-result').style.display = 'none';
+    }
+
+    // 初始化棋子
+    function initPieces() {
+      // 红方
+      board[0][0] = { type: '车', color: 'red' };
+      board[0][1] = { type: '马', color: 'red' };
+      board[0][2] = { type: '相', color: 'red' };
+      board[0][3] = { type: '仕', color: 'red' };
+      board[0][4] = { type: '帅', color: 'red' };
+      board[0][5] = { type: '仕', color: 'red' };
+      board[0][6] = { type: '相', color: 'red' };
+      board[0][7] = { type: '马', color: 'red' };
+      board[0][8] = { type: '车', color: 'red' };
+      board[2][1] = { type: '炮', color: 'red' };
+      board[2][7] = { type: '炮', color: 'red' };
+      board[3][0] = { type: '兵', color: 'red' };
+      board[3][2] = { type: '兵', color: 'red' };
+      board[3][4] = { type: '兵', color: 'red' };
+      board[3][6] = { type: '兵', color: 'red' };
+      board[3][8] = { type: '兵', color: 'red' };
+      
+      // 黑方
+      board[7][0] = { type: '车', color: 'black' };
+      board[7][1] = { type: '马', color: 'black' };
+      board[7][2] = { type: '相', color: 'black' };
+      board[7][3] = { type: '仕', color: 'black' };
+      board[7][4] = { type: '帅', color: 'black' };
+      board[7][5] = { type: '仕', color: 'black' };
+      board[7][6] = { type: '相', color: 'black' };
+      board[7][7] = { type: '马', color: 'black' };
+      board[7][8] = { type: '车', color: 'black' };
+      board[5][1] = { type: '炮', color: 'black' };
+      board[5][7] = { type: '炮', color: 'black' };
+      board[4][0] = { type: '兵', color: 'black' };
+      board[4][2] = { type: '兵', color: 'black' };
+      board[4][4] = { type: '兵', color: 'black' };
+      board[4][6] = { type: '兵', color: 'black' };
+      board[4][8] = { type: '兵', color: 'black' };
+    }
+
+    // 渲染棋盘
+    function renderBoard() {
+      const chessboard = document.getElementById('chessboard');
+      chessboard.innerHTML = '';
+      
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          const square = document.createElement('div');
+          const isLight = (x + y) % 2 === 0;
+          square.className = `chess-square ${isLight ? 'light' : 'dark'}`;
+          
+          // 检查是否是选中的棋子
+          if (selectedPiece && selectedPiece.x === x && selectedPiece.y === y) {
+            square.classList.add('selected');
+          }
+          
+          // 检查是否是有效移动位置
+          const isValidMove = validMoves.some(move => move.x === x && move.y === y);
+          if (isValidMove) {
+            const piece = board[x][y];
+            square.classList.add(piece ? 'valid-capture' : 'valid-move');
+          }
+          
+          // 添加点击事件
+          square.onclick = () => handleSquareClick(x, y);
+          
+          // 添加棋子
+          const piece = board[x][y];
+          if (piece) {
+            const pieceElement = document.createElement('div');
+            pieceElement.className = `chess-piece ${piece.color === 'red' ? 'text-red-600' : 'text-black'}`;
+            pieceElement.textContent = piece.type;
+            square.appendChild(pieceElement);
+          }
+          
+          chessboard.appendChild(square);
+        }
+      }
+    }
+
+    // 处理棋盘点击
+    function handleSquareClick(x, y) {
+      if (gameStatus !== 'playing') return;
+      if (aiThinking) return;
+
+      const piece = board[x][y];
+
+      // 如果已经选择了棋子，尝试移动
+      if (selectedPiece) {
+        const selectedX = selectedPiece.x;
+        const selectedY = selectedPiece.y;
+        const selectedPieceData = board[selectedX][selectedY];
+
+        if (selectedPieceData && selectedPieceData.color === currentPlayer) {
+          // 检查是否是有效移动
+          const isValidMove = validMoves.some(move => move.x === x && move.y === y);
+          if (isValidMove) {
+            // 执行移动
+            board[x][y] = selectedPieceData;
+            board[selectedX][selectedY] = null;
+
+            // 检查游戏是否结束
+            checkGameStatus();
+
+            // 重新渲染棋盘
+            renderBoard();
+
+            // 重置选中状态
+            selectedPiece = null;
+            validMoves = [];
+
+            // 切换玩家
+            currentPlayer = currentPlayer === 'red' ? 'black' : 'red';
+            updateGameStatus();
+
+            // 如果是人机对弈且轮到AI
+            if (gameMode === 'ai' && currentPlayer === 'black' && gameStatus === 'playing') {
+              setTimeout(aiMove, 1000);
+            }
+          } else {
+            // 取消选择
+            selectedPiece = null;
+            validMoves = [];
+            renderBoard();
+          }
+        }
+      } else if (piece && piece.color === currentPlayer) {
+        // 选择棋子
+        selectedPiece = { x, y };
+        validMoves = getValidMoves(piece, x, y);
+        renderBoard();
+      }
+    }
+
+    // 获取有效移动位置
+    function getValidMoves(piece, x, y) {
+      const moves = [];
+      const { type, color } = piece;
+
+      switch (type) {
+        case '帅':
+          // 帅只能在九宫格内移动，每次走一步
+          const palaceXRange = color === 'red' ? [0, 1, 2] : [5, 6, 7];
+          const palaceYRange = [3, 4, 5];
+          
+          // 上下左右移动
+          const directions = [{ dx: -1, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 }];
+          for (const { dx, dy } of directions) {
+            const newX = x + dx;
+            const newY = y + dy;
+            if (palaceXRange.includes(newX) && palaceYRange.includes(newY)) {
+              const targetPiece = board[newX][newY];
+              if (!targetPiece || targetPiece.color !== color) {
+                moves.push({ x: newX, y: newY });
+              }
+            }
+          }
+          break;
+
+        case '仕':
+          // 仕只能在九宫格内斜着走，每次走一步
+          const palaceXRangeShi = color === 'red' ? [0, 1, 2] : [5, 6, 7];
+          const palaceYRangeShi = [3, 4, 5];
+          
+          // 斜着移动
+          const diagonalDirections = [{ dx: -1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 1 }];
+          for (const { dx, dy } of diagonalDirections) {
+            const newX = x + dx;
+            const newY = y + dy;
+            if (palaceXRangeShi.includes(newX) && palaceYRangeShi.includes(newY)) {
+              const targetPiece = board[newX][newY];
+              if (!targetPiece || targetPiece.color !== color) {
+                moves.push({ x: newX, y: newY });
+              }
+            }
+          }
+          break;
+
+        case '相':
+          // 相只能斜着走，每次走两步，不能过河，不能塞象眼
+          const xRangeXiang = color === 'red' ? [0, 1, 2, 3] : [4, 5, 6, 7];
+          
+          // 斜着移动两步
+          const diagonalDirectionsXiang = [{ dx: -2, dy: -2 }, { dx: -2, dy: 2 }, { dx: 2, dy: -2 }, { dx: 2, dy: 2 }];
+          for (const { dx, dy } of diagonalDirectionsXiang) {
+            const newX = x + dx;
+            const newY = y + dy;
+            if (xRangeXiang.includes(newX) && newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+              // 检查象眼是否被塞
+              const eyeX = x + dx / 2;
+              const eyeY = y + dy / 2;
+              if (!board[eyeX][eyeY]) {
+                const targetPiece = board[newX][newY];
+                if (!targetPiece || targetPiece.color !== color) {
+                  moves.push({ x: newX, y: newY });
+                }
+              }
+            }
+          }
+          break;
+
+        case '马':
+          // 马走日，不能蹩马腿
+          const horseDirections = [
+            { dx: -2, dy: -1 }, { dx: -2, dy: 1 },
+            { dx: -1, dy: -2 }, { dx: -1, dy: 2 },
+            { dx: 1, dy: -2 }, { dx: 1, dy: 2 },
+            { dx: 2, dy: -1 }, { dx: 2, dy: 1 }
+          ];
+          
+          for (const { dx, dy } of horseDirections) {
+            const newX = x + dx;
+            const newY = y + dy;
+            if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+              // 检查马腿是否被蹩
+              const legX = x + (dx > 0 ? 1 : dx < 0 ? -1 : 0);
+              const legY = y + (dy > 0 ? 1 : dy < 0 ? -1 : 0);
+              if (!board[legX][legY]) {
+                const targetPiece = board[newX][newY];
+                if (!targetPiece || targetPiece.color !== color) {
+                  moves.push({ x: newX, y: newY });
+                }
+              }
+            }
+          }
+          break;
+
+        case '车':
+          // 车可以直走，不限步数，不能越过其他棋子
+          const rookDirections = [{ dx: -1, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 }];
+          
+          for (const { dx, dy } of rookDirections) {
+            let newX = x + dx;
+            let newY = y + dy;
+            while (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+              const targetPiece = board[newX][newY];
+              if (!targetPiece) {
+                moves.push({ x: newX, y: newY });
+              } else if (targetPiece.color !== color) {
+                moves.push({ x: newX, y: newY });
+                break;
+              } else {
+                break;
+              }
+              newX += dx;
+              newY += dy;
+            }
+          }
+          break;
+
+        case '炮':
+          // 炮可以直走，不限步数，吃子需要隔一个棋子
+          const cannonDirections = [{ dx: -1, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 }];
+          
+          for (const { dx, dy } of cannonDirections) {
+            let newX = x + dx;
+            let newY = y + dy;
+            let hasPiece = false;
+            while (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+              const targetPiece = board[newX][newY];
+              if (!targetPiece) {
+                if (!hasPiece) {
+                  moves.push({ x: newX, y: newY });
+                }
+              } else if (targetPiece.color !== color) {
+                if (hasPiece) {
+                  moves.push({ x: newX, y: newY });
+                }
+                break;
+              } else {
+                if (!hasPiece) {
+                  hasPiece = true;
+                } else {
+                  break;
+                }
+              }
+              newX += dx;
+              newY += dy;
+            }
+          }
+          break;
+
+        case '兵':
+          // 兵未过河只能向前走，过河后可以左右走，每次走一步
+          if (color === 'red') {
+            // 红兵
+            if (x < 4) {
+              // 未过河，只能向前
+              if (x + 1 < 8) {
+                const targetPiece = board[x + 1][y];
+                if (!targetPiece || targetPiece.color !== color) {
+                  moves.push({ x: x + 1, y });
+                }
+              }
+            } else {
+              // 已过河，可以左右和向前
+              const soldierDirections = [{ dx: 1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 }];
+              for (const { dx, dy } of soldierDirections) {
+                const newX = x + dx;
+                const newY = y + dy;
+                if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+                  const targetPiece = board[newX][newY];
+                  if (!targetPiece || targetPiece.color !== color) {
+                    moves.push({ x: newX, y: newY });
+                  }
+                }
+              }
+            }
+          } else {
+            // 黑兵
+            if (x > 3) {
+              // 未过河，只能向前
+              if (x - 1 >= 0) {
+                const targetPiece = board[x - 1][y];
+                if (!targetPiece || targetPiece.color !== color) {
+                  moves.push({ x: x - 1, y });
+                }
+              }
+            } else {
+              // 已过河，可以左右和向前
+              const soldierDirections = [{ dx: -1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 }];
+              for (const { dx, dy } of soldierDirections) {
+                const newX = x + dx;
+                const newY = y + dy;
+                if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+                  const targetPiece = board[newX][newY];
+                  if (!targetPiece || targetPiece.color !== color) {
+                    moves.push({ x: newX, y: newY });
+                  }
+                }
+              }
+            }
+          }
+          break;
+      }
+
+      return moves;
+    }
+
+    // 检查游戏状态
+    function checkGameStatus() {
+      let redKingExists = false;
+      let blackKingExists = false;
+
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          const piece = board[x][y];
+          if (piece && piece.type === '帅') {
+            if (piece.color === 'red') {
+              redKingExists = true;
+            } else {
+              blackKingExists = true;
+            }
+          }
+        }
+      }
+
+      if (!redKingExists) {
+        gameStatus = 'black_wins';
+        showGameResult('黑方胜利！');
+      } else if (!blackKingExists) {
+        gameStatus = 'red_wins';
+        showGameResult('红方胜利！');
+      }
+    }
+
+    // 显示游戏结果
+    function showGameResult(message) {
+      document.getElementById('result-message').textContent = message;
+      document.getElementById('game-result').style.display = 'flex';
+    }
+
+    // AI 移动
+    function aiMove() {
+      aiThinking = true;
+      document.getElementById('ai-thinking').style.display = 'block';
+      updateGameStatus();
+
+      // 简单的AI逻辑：随机选择一个可移动的棋子并移动
+      setTimeout(() => {
+        const blackPieces = [];
+        for (let x = 0; x < 8; x++) {
+          for (let y = 0; y < 8; y++) {
+            const piece = board[x][y];
+            if (piece && piece.color === 'black') {
+              blackPieces.push({ x, y });
+            }
+          }
+        }
+
+        // 随机选择一个棋子
+        const randomPieceIndex = Math.floor(Math.random() * blackPieces.length);
+        const selectedPiecePos = blackPieces[randomPieceIndex];
+        const selectedPiece = board[selectedPiecePos.x][selectedPiecePos.y];
+
+        if (selectedPiece) {
+          const moves = getValidMoves(selectedPiece, selectedPiecePos.x, selectedPiecePos.y);
+          if (moves.length > 0) {
+            // 随机选择一个移动位置
+            const randomMoveIndex = Math.floor(Math.random() * moves.length);
+            const move = moves[randomMoveIndex];
+
+            // 执行移动
+            board[move.x][move.y] = selectedPiece;
+            board[selectedPiecePos.x][selectedPiecePos.y] = null;
+
+            // 检查游戏是否结束
+            checkGameStatus();
+
+            // 重新渲染棋盘
+            renderBoard();
+          }
+        }
+
+        aiThinking = false;
+        document.getElementById('ai-thinking').style.display = 'none';
+        currentPlayer = 'red';
+        updateGameStatus();
+      }, 1000);
+    }
+
+    // 更新游戏状态显示
+    function updateGameStatus() {
+      document.getElementById('current-turn').textContent = currentPlayer === 'red' ? '红方' : '黑方';
+      document.getElementById('game-status').textContent = gameStatus === 'playing' ? '进行中' : gameStatus === 'red_wins' ? '红方胜利' : '黑方胜利';
+    }
+
+    // 重新开始游戏
+    function restartGame() {
+      initGame();
+    }
+
+    // 切换标签页
+    function switchTab(tabName) {
+      // 更新标签按钮状态
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // 隐藏所有标签内容
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      // 显示目标标签内容
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+
+    // 加载用户信息
+    async function loadUserProfile() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user/profile`);
+        const data = await response.json();
+        const user = data.user;
+        
+        // 更新用户信息
+        document.querySelector('.profile-header h2').textContent = user.username;
+        document.querySelector('.profile-header p:nth-child(2)').textContent = user.email;
+        document.querySelector('.profile-header p:nth-child(3)').textContent = `加入时间: ${user.joinDate}`;
+        document.querySelector('.avatar').src = user.avatar;
+        
+        // 更新统计数据
+        const stats = document.querySelectorAll('.stats-grid p:first-child');
+        stats[0].textContent = user.totalGames;
+        stats[1].textContent = user.wins;
+        stats[2].textContent = user.losses;
+        stats[3].textContent = user.draws;
+      } catch (error) {
+        console.error('加载用户信息失败:', error);
+      }
+    }
+
+    // 加载历史对局
+    async function loadGameHistory() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/game/history`);
+        const data = await response.json();
+        const games = data.games;
+        
+        // 更新历史对局表格
+        const tbody = document.querySelector('#history-tab table tbody');
+        tbody.innerHTML = '';
+        
+        games.forEach(game => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${game.date}</td>
+            <td>${game.mode}</td>
+            <td>${game.difficulty}</td>
+            <td>${game.opponent}</td>
+            <td style="color: ${game.result === '胜利' ? '#4caf50' : game.result === '失败' ? '#f44336' : '#2196f3'}; font-weight: bold;">${game.result}</td>
+            <td>${game.moves}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('加载历史对局失败:', error);
+      }
+    }
+
+    // 处理登录
+    async function handleLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const errorElement = document.getElementById('login-error');
+
+      if (email && password) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            showPage('profile-page');
+          } else {
+            const errorData = await response.json();
+            errorElement.textContent = errorData.error || '登录失败';
+            errorElement.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('登录失败:', error);
+          errorElement.textContent = '网络错误，请稍后重试';
+          errorElement.style.display = 'block';
+        }
+      } else {
+        errorElement.textContent = '请输入邮箱和密码';
+        errorElement.style.display = 'block';
+      }
+    }
+
+    // 处理注册
+    async function handleRegister(event) {
+      event.preventDefault();
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      const confirmPassword = document.getElementById('register-confirm-password').value;
+      const errorElement = document.getElementById('register-error');
+
+      if (username && email && password && confirmPassword) {
+        if (password === confirmPassword) {
+          try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ username, email, password })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              showPage('login-page');
+            } else {
+              const errorData = await response.json();
+              errorElement.textContent = errorData.error || '注册失败';
+              errorElement.style.display = 'block';
+            }
+          } catch (error) {
+            console.error('注册失败:', error);
+            errorElement.textContent = '网络错误，请稍后重试';
+            errorElement.style.display = 'block';
+          }
+        } else {
+          errorElement.textContent = '两次输入的密码不一致';
+          errorElement.style.display = 'block';
+        }
+      } else {
+        errorElement.textContent = '请填写所有必填字段';
+        errorElement.style.display = 'block';
+      }
+    }
+
+    // 初始化页面
+    window.onload = function() {
+      // 显示首页
+      showPage('home-page');
+    };
+  </script>
+</body>
+</html>
